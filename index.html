@@ -4,229 +4,254 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Monitoring KSO</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-color: #f5f7fa;
-      --text-color: #333;
-      --card-bg: #fff;
-      --card-shadow: rgba(0, 0, 0, 0.1);
-      --table-header-bg: #f0f0f0;
+      --primary-bg: #1e1e2f;
+      --secondary-bg: #2c2c3e;
+      --accent: #4f8ef7;
+      --text-color: #f0f0f0;
+      --card-bg: #2e2e3e;
+      --table-bg: #3a3a4f;
+      --light-bg: #f5f7fa;
+      --light-text: #333;
     }
-
-    [data-theme="dark"] {
-      --bg-color: #121212;
-      --text-color: #ffffff;
-      --card-bg: #1e1e1e;
-      --card-shadow: rgba(255, 255, 255, 0.1);
-      --table-header-bg: #2a2a2a;
-    }
-
     body {
       font-family: 'Poppins', sans-serif;
-      background: var(--bg-color);
+      margin: 0; padding: 0;
+      background: var(--primary-bg);
       color: var(--text-color);
-      margin: 0; padding: 20px;
-      transition: background 0.3s, color 0.3s;
+      transition: all 0.3s ease;
     }
-    .header { text-align: center; font-size: 2em; margin-bottom: 20px; }
-    .controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-    select, button, input { padding: 10px 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 1em; }
-    .summary { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+    .light-mode {
+      --primary-bg: #f5f7fa;
+      --secondary-bg: #ffffff;
+      --accent: #4f8ef7;
+      --text-color: #333;
+      --card-bg: #ffffff;
+      --table-bg: #ffffff;
+    }
+    .header {
+      text-align: center;
+      font-size: 2em;
+      padding: 20px;
+      background: var(--secondary-bg);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: var(--secondary-bg);
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    select, button, input {
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1em;
+    }
+    .toggle-mode {
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      transition: transform 0.2s ease;
+    }
+    .toggle-mode:hover {
+      transform: scale(1.05);
+    }
+    .summary {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin: 20px;
+    }
     .card {
       background: var(--card-bg);
       padding: 15px 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px var(--card-shadow);
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       text-align: center;
-      min-width: 200px;
-      transition: background 0.3s;
+      min-width: 220px;
     }
-    table { width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: 10px; overflow: hidden; transition: background 0.3s; }
-    th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
-    th { background: var(--table-header-bg); }
-    #loadingOverlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(255, 255, 255, 0.8);
-      display: flex; justify-content: center; align-items: center;
-      z-index: 999; display: none;
+    table {
+      width: 95%;
+      margin: 0 auto;
+      border-collapse: collapse;
+      background: var(--table-bg);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 30px;
     }
-    [data-theme="dark"] #loadingOverlay {
-      background: rgba(0, 0, 0, 0.5);
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      text-align: left;
     }
-    .spinner {
-      border: 8px solid #f3f3f3;
-      border-top: 8px solid #3498db;
-      border-radius: 50%;
-      width: 60px; height: 60px;
-      animation: spin 1s linear infinite;
+    th {
+      background: var(--accent);
+      color: white;
     }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .theme-toggle {
-      position: fixed; top: 20px; right: 20px;
-      cursor: pointer; background: var(--card-bg);
-      border: none; padding: 10px 15px; border-radius: 8px;
-      box-shadow: 0 2px 5px var(--card-shadow);
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 1.5em;
+      z-index: 999;
+      display: none;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
+  <div class="header">Dashboard Monitoring KSO</div>
 
-<div class="header">Dashboard Monitoring KSO</div>
-<button class="theme-toggle" onclick="toggleTheme()">MODE KADAP</button>
-
-<div class="controls">
-  <select id="filterType">
-    <option value="NAMA">NAMA</option>
-    <option value="UNIT">UNIT</option>
-    <option value="JABATAN">JABATAN</option>
-    <option value="SPK">SPK</option>
-  </select>
-  <input type="text" id="keyword" placeholder="Masukkan kata kunci...">
-  <select id="cabangFilter">
-    <option value="SEMUA">SEMUA</option>
-    <option value="CABANG KALSEL">CABANG KALSEL</option>
-    <option value="CABANG KALTENG">CABANG KALTENG</option>
-  </select>
-  <select id="dataLimit">
-    <option value="10">10</option>
-    <option value="50">50</option>
-    <option value="100">100</option>
-    <option value="500">500</option>
-  </select>
-  <button onclick="filterData()">Tampilkan</button>
-  <button onclick="downloadCSV()">Download Full Data</button>
-</div>
-
-<div class="summary">
-  <div class="card">
-    <div>Cabang KALSEL</div>
-    <div>BELUM ABSENSI: <span id="kalselBelum">0</span> | <span id="kalselBelumPercent">0%</span></div>
-    <div>SUDAH ABSENSI: <span id="kalselSudah">0</span> | <span id="kalselSudahPercent">0%</span></div>
-    <div>TOTAL KARYAWAN: <span id="kalselTotal">0</span></div>
+  <div class="controls">
+    <select id="filterType">
+      <option value="NAMA">NAMA</option>
+      <option value="UNIT">UNIT</option>
+      <option value="JABATAN">JABATAN</option>
+      <option value="SPK">SPK</option>
+    </select>
+    <input type="text" id="keyword" placeholder="Masukkan kata kunci...">
+    <select id="cabangFilter">
+      <option value="SEMUA">SEMUA</option>
+      <option value="CABANG KALSEL">CABANG KALSEL</option>
+      <option value="CABANG KALTENG">CABANG KALTENG</option>
+    </select>
+    <select id="dataLimit">
+      <option value="10">10</option>
+      <option value="50">50</option>
+      <option value="100">100</option>
+      <option value="500">500</option>
+    </select>
+    <button onclick="filterData()">Tampilkan</button>
+    <button onclick="downloadCSV()">Download CSV</button>
+    <button class="toggle-mode" onclick="toggleMode()">KADAPI SADIKIT</button>
   </div>
-  <div class="card">
-    <div>Cabang KALTENG</div>
-    <div>BELUM ABSENSI: <span id="kaltengBelum">0</span> | <span id="kaltengBelumPercent">0%</span></div>
-    <div>SUDAH ABSENSI: <span id="kaltengSudah">0</span> | <span id="kaltengSudahPercent">0%</span></div>
-    <div>TOTAL KARYAWAN: <span id="kaltengTotal">0</span></div>
+
+  <div class="summary">
+    <div class="card">
+      <div>Cabang KALSEL</div>
+      <div>BELUM ABSENSI: <span id="kalselBelum">0</span> | <span id="kalselBelumPercent">0%</span></div>
+      <div>SUDAH ABSENSI: <span id="kalselSudah">0</span> | <span id="kalselSudahPercent">0%</span></div>
+      <div>TOTAL KARYAWAN: <span id="kalselTotal">0</span></div>
+    </div>
+    <div class="card">
+      <div>Cabang KALTENG</div>
+      <div>BELUM ABSENSI: <span id="kaltengBelum">0</span> | <span id="kaltengBelumPercent">0%</span></div>
+      <div>SUDAH ABSENSI: <span id="kaltengSudah">0</span> | <span id="kaltengSudahPercent">0%</span></div>
+      <div>TOTAL KARYAWAN: <span id="kaltengTotal">0</span></div>
+    </div>
   </div>
-</div>
 
-<table>
-  <thead>
-    <tr>
-      <th>NIP</th>
-      <th>NAMA</th>
-      <th>UNIT</th>
-      <th>JABATAN</th>
-      <th>SPK</th>
-      <th>LOKASI ABSEN</th>
-      <th>KETERANGAN</th>
-    </tr>
-  </thead>
-  <tbody id="dataTable"></tbody>
-</table>
+  <table>
+    <thead>
+      <tr>
+        <th>NIP</th>
+        <th>NAMA</th>
+        <th>UNIT</th>
+        <th>JABATAN</th>
+        <th>SPK</th>
+        <th>LOKASI ABSEN</th>
+        <th>KETERANGAN</th>
+      </tr>
+    </thead>
+    <tbody id="dataTable"></tbody>
+  </table>
 
-<div id="loadingOverlay">
-  <div class="spinner"></div>
-</div>
+  <div class="loading-overlay" id="loading">Loading...</div>
 
-<script>
-  let rawData = [];
-  const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ99AnzKxfM4RiLan520o2whUadT-vxlbgBCXbSPy9AeW110OHI3SezC1AVxHXwnG681jWB6LVv9p2c/pub?gid=902005521&single=true&output=csv';
+  <script>
+    let rawData = [];
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ99AnzKxfM4RiLan520o2whUadT-vxlbgBCXbSPy9AeW110OHI3SezC1AVxHXwnG681jWB6LVv9p2c/pub?gid=902005521&single=true&output=csv';
 
-  function showLoading() { document.getElementById('loadingOverlay').style.display = 'flex'; }
-  function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
-
-  function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    document.documentElement.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
-  }
-
-  showLoading();
-  Papa.parse(csvUrl, {
-    download: true,
-    header: true,
-    complete: function(results) {
-      rawData = results.data;
-      hideLoading();
-      filterData();
-    }
-  });
-
-  function filterData() {
-    showLoading();
-    setTimeout(() => {
-      const filterType = document.getElementById('filterType').value;
-      const keyword = document.getElementById('keyword').value.trim().toLowerCase();
-      const cabangFilter = document.getElementById('cabangFilter').value;
-      const limit = parseInt(document.getElementById('dataLimit').value);
-
-      let filtered = rawData.filter(row => {
-        const fieldValue = (row[filterType] || '').toLowerCase();
-        const cabangValue = (row['CABANG'] || row[' CABANG'] || '').trim();
-        const matchKeyword = !keyword || fieldValue.includes(keyword);
-        const matchCabang = cabangFilter === 'SEMUA' || cabangValue === cabangFilter;
-        return matchKeyword && matchCabang;
-      });
-
-      renderTable(filtered.slice(0, limit));
-      renderSummary(filtered);
-      hideLoading();
-    }, 300);
-  }
-
-  function renderTable(data) {
-    const tbody = document.getElementById('dataTable');
-    tbody.innerHTML = '';
-    data.forEach(row => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${row.NIP}</td>
-        <td>${row.NAMA}</td>
-        <td>${row.UNIT}</td>
-        <td>${row.JABATAN}</td>
-        <td>${row.SPK}</td>
-        <td>${row['LOKASI ABSEN']}</td>
-        <td>${row.KETERANGAN}</td>`;
-      tbody.appendChild(tr);
+    Papa.parse(csvUrl, {
+      download: true,
+      header: true,
+      complete: function(results) {
+        rawData = results.data;
+        filterData();
+      }
     });
-  }
 
-  function renderSummary(data) {
-    const kalselData = data.filter(row => (row['CABANG'] || row[' CABANG'] || '').trim() === 'CABANG KALSEL');
-    const kaltengData = data.filter(row => (row['CABANG'] || row[' CABANG'] || '').trim() === 'CABANG KALTENG');
+    function showLoading(state) {
+      document.getElementById('loading').style.display = state ? 'flex' : 'none';
+    }
 
-    updateCabangSummary(kalselData, 'kalsel');
-    updateCabangSummary(kaltengData, 'kalteng');
-  }
+    function filterData() {
+      showLoading(true);
+      setTimeout(() => {
+        const filterType = document.getElementById('filterType').value;
+        const keyword = document.getElementById('keyword').value.trim().toLowerCase();
+        const cabangFilter = document.getElementById('cabangFilter').value;
+        const limit = parseInt(document.getElementById('dataLimit').value);
 
-  function updateCabangSummary(cabangData, prefix) {
-    const total = cabangData.length;
-    const belum = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim() === 'BELUM ABSENSI').length;
-    const sudah = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim() === 'SUDAH ABSENSI').length;
-    const belumPercent = total ? Math.round((belum / total) * 100) : 0;
-    const sudahPercent = total ? Math.round((sudah / total) * 100) : 0;
+        let filtered = rawData.filter(row => {
+          const fieldValue = (row[filterType] || '').toLowerCase();
+          const cabangValue = (row['CABANG'] || row[' CABANG'] || '').trim();
+          const matchKeyword = !keyword || fieldValue.includes(keyword);
+          const matchCabang = cabangFilter === 'SEMUA' || cabangValue === cabangFilter;
+          return matchKeyword && matchCabang;
+        });
 
-    document.getElementById(`${prefix}Belum`).innerText = belum;
-    document.getElementById(`${prefix}BelumPercent`).innerText = `${belumPercent}%`;
-    document.getElementById(`${prefix}Sudah`).innerText = sudah;
-    document.getElementById(`${prefix}SudahPercent`).innerText = `${sudahPercent}%`;
-    document.getElementById(`${prefix}Total`).innerText = total;
-  }
+        renderTable(filtered.slice(0, limit));
+        renderSummary(filtered);
+        showLoading(false);
+      }, 500);
+    }
 
-  function downloadCSV() {
-    const link = document.createElement('a');
-    link.href = csvUrl;
-    link.download = 'MonitoringKSO.csv';
-    link.click();
-  }
-</script>
+    function renderTable(data) {
+      const tbody = document.getElementById('dataTable');
+      tbody.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.NIP}</td><td>${row.NAMA}</td><td>${row.UNIT}</td><td>${row.JABATAN}</td><td>${row.SPK}</td><td>${row['LOKASI ABSEN']}</td><td>${row.KETERANGAN}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderSummary(data) {
+      const kalselData = data.filter(row => (row['CABANG'] || row[' CABANG'] || '').trim() === 'CABANG KALSEL');
+      const kaltengData = data.filter(row => (row['CABANG'] || row[' CABANG'] || '').trim() === 'CABANG KALTENG');
+
+      updateCabangSummary(kalselData, 'kalsel');
+      updateCabangSummary(kaltengData, 'kalteng');
+    }
+
+    function updateCabangSummary(cabangData, prefix) {
+      const total = cabangData.length;
+      const belum = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim() === 'BELUM ABSENSI').length;
+      const sudah = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim() === 'SUDAH ABSENSI').length;
+      const belumPercent = total ? Math.round((belum / total) * 100) : 0;
+      const sudahPercent = total ? Math.round((sudah / total) * 100) : 0;
+
+      document.getElementById(`${prefix}Belum`).innerText = belum;
+      document.getElementById(`${prefix}BelumPercent`).innerText = `${belumPercent}%`;
+      document.getElementById(`${prefix}Sudah`).innerText = sudah;
+      document.getElementById(`${prefix}SudahPercent`).innerText = `${sudahPercent}%`;
+      document.getElementById(`${prefix}Total`).innerText = total;
+    }
+
+    function toggleMode() {
+      document.body.classList.toggle('light-mode');
+    }
+
+    function downloadCSV() {
+      const link = document.createElement('a');
+      link.href = csvUrl;
+      link.download = 'MonitoringKSO.csv';
+      link.click();
+    }
+  </script>
 
 </body>
 </html>
-
