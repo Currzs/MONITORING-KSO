@@ -10,10 +10,11 @@
     .controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
     select, button, input { padding: 10px 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 1em; }
     .summary { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
-    .card { background: #fff; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; min-width: 200px; }
+    .card { background: #fff; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; min-width: 220px; }
     table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
     th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
     th { background: #f0f0f0; }
+    .loader { display: none; text-align: center; margin: 20px; font-size: 1.2em; color: #666; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
@@ -48,13 +49,17 @@
       <div>Cabang KALSEL</div>
       <div>BELUM ABSENSI: <span id="kalselBelum">0</span> | <span id="kalselBelumPercent">0%</span></div>
       <div>SUDAH ABSENSI: <span id="kalselSudah">0</span> | <span id="kalselSudahPercent">0%</span></div>
+      <div>TOTAL KARYAWAN: <span id="kalselTotal">0</span></div>
     </div>
     <div class="card">
       <div>Cabang KALTENG</div>
       <div>BELUM ABSENSI: <span id="kaltengBelum">0</span> | <span id="kaltengBelumPercent">0%</span></div>
       <div>SUDAH ABSENSI: <span id="kaltengSudah">0</span> | <span id="kaltengSudahPercent">0%</span></div>
+      <div>TOTAL KARYAWAN: <span id="kaltengTotal">0</span></div>
     </div>
   </div>
+
+  <div class="loader" id="loader">Loading Data...</div>
 
   <table>
     <thead>
@@ -75,12 +80,13 @@
   let rawData = [];
   const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ99AnzKxfM4RiLan520o2whUadT-vxlbgBCXbSPy9AeW110OHI3SezC1AVxHXwnG681jWB6LVv9p2c/pub?gid=902005521&single=true&output=csv';
 
+  document.getElementById('loader').style.display = 'block';
   Papa.parse(csvUrl, {
     download: true,
     header: true,
     complete: function(results) {
       rawData = results.data;
-      console.log("Sample Header Row:", rawData[0]); // Debug header names
+      document.getElementById('loader').style.display = 'none';
       filterData();
     }
   });
@@ -130,8 +136,8 @@
 
   function updateCabangSummary(cabangData, prefix) {
     const total = cabangData.length;
-    const belum = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim() === 'BELUM ABSENSI').length;
-    const sudah = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim() === 'SUDAH ABSENSI').length;
+    const belum = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim().toUpperCase() === 'BELUM ABSENSI').length;
+    const sudah = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim().toUpperCase() === 'SUDAH ABSENSI').length;
     const belumPercent = total ? Math.round((belum / total) * 100) : 0;
     const sudahPercent = total ? Math.round((sudah / total) * 100) : 0;
 
@@ -139,6 +145,7 @@
     document.getElementById(`${prefix}BelumPercent`).innerText = `${belumPercent}%`;
     document.getElementById(`${prefix}Sudah`).innerText = sudah;
     document.getElementById(`${prefix}SudahPercent`).innerText = `${sudahPercent}%`;
+    document.getElementById(`${prefix}Total`).innerText = total;
   }
 
   function downloadCSV() {
