@@ -47,12 +47,12 @@
   <div class="summary">
     <div class="card">
       <div>Cabang KALSEL</div>
-      <div>Belum Absen: <span id="kalselBelum">0</span> | <span id="kalselBelumPercent">0%</span></div>
+      <div>BELUM ABSENSI: <span id="kalselBelum">0</span> | <span id="kalselBelumPercent">0%</span></div>
       <div>Sudah Absen: <span id="kalselSudah">0</span> | <span id="kalselSudahPercent">0%</span></div>
     </div>
     <div class="card">
       <div>Cabang KALTENG</div>
-      <div>Belum Absen: <span id="kaltengBelum">0</span> | <span id="kaltengBelumPercent">0%</span></div>
+      <div>BELUM ABSENSI: <span id="kaltengBelum">0</span> | <span id="kaltengBelumPercent">0%</span></div>
       <div>Sudah Absen: <span id="kaltengSudah">0</span> | <span id="kaltengSudahPercent">0%</span></div>
     </div>
   </div>
@@ -121,7 +121,7 @@
 
   function updateCabangSummary(cabangData, prefix) {
     const total = cabangData.length;
-    const belum = cabangData.filter(row => row.KETERANGAN === 'BELUM ABSEN').length;
+    const belum = cabangData.filter(row => row.KETERANGAN === 'BELUM ABSENSI').length;
     const sudah = cabangData.filter(row => row.KETERANGAN === 'SUDAH ABSEN').length;
     const belumPercent = total ? Math.round((belum / total) * 100) : 0;
     const sudahPercent = total ? Math.round((sudah / total) * 100) : 0;
@@ -142,3 +142,4 @@
 
 </body>
 </html>
+
