@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,15 +9,14 @@
     body { font-family: 'Poppins', sans-serif; background: #f5f7fa; margin: 0; padding: 20px; }
     .header { text-align: center; font-size: 2em; margin-bottom: 20px; color: #333; }
     .controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-    select, input, button { padding: 10px 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 1em; }
+    select, button, input { padding: 10px 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 1em; }
     .summary { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
-    .card { background: #fff; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+    .card { background: #fff; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; min-width: 200px; }
     table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
     th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
     th { background: #f0f0f0; }
-    @media (max-width: 600px) { .summary { flex-direction: column; align-items: center; } }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
   <div class="header">Dashboard Monitoring KSO</div>
@@ -28,7 +28,12 @@
       <option value="JABATAN">JABATAN</option>
       <option value="SPK">SPK</option>
     </select>
-    <input type="text" id="searchInput" placeholder="Masukkan kata kunci...">
+    <input type="text" id="keyword" placeholder="Masukkan kata kunci...">
+    <select id="cabangFilter">
+      <option value="SEMUA">SEMUA</option>
+      <option value="CABANG KALSEL">CABANG KALSEL</option>
+      <option value="CABANG KALTENG">CABANG KALTENG</option>
+    </select>
     <select id="dataLimit">
       <option value="10">10</option>
       <option value="50">50</option>
@@ -42,13 +47,13 @@
   <div class="summary">
     <div class="card">
       <div>Cabang KALSEL</div>
-      <div>Belum Absen: <span id="kalselBelum">0</span></div>
-      <div>Sudah Absen: <span id="kalselSudah">0</span></div>
+      <div>Belum Absen: <span id="kalselBelum">0</span> | <span id="kalselBelumPercent">0%</span></div>
+      <div>Sudah Absen: <span id="kalselSudah">0</span> | <span id="kalselSudahPercent">0%</span></div>
     </div>
     <div class="card">
       <div>Cabang KALTENG</div>
-      <div>Belum Absen: <span id="kaltengBelum">0</span></div>
-      <div>Sudah Absen: <span id="kaltengSudah">0</span></div>
+      <div>Belum Absen: <span id="kaltengBelum">0</span> | <span id="kaltengBelumPercent">0%</span></div>
+      <div>Sudah Absen: <span id="kaltengSudah">0</span> | <span id="kaltengSudahPercent">0%</span></div>
     </div>
   </div>
 
@@ -67,78 +72,73 @@
     <tbody id="dataTable"></tbody>
   </table>
 
-  <script>
-    let rawData = [];
-    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ99AnzKxfM4RiLan520o2whUadT-vxlbgBCXbSPy9AeW110OHI3SezC1AVxHXwnG681jWB6LVv9p2c/pub?gid=902005521&single=true&output=csv';
+<script>
+  let rawData = [];
+  const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ99AnzKxfM4RiLan520o2whUadT-vxlbgBCXbSPy9AeW110OHI3SezC1AVxHXwnG681jWB6LVv9p2c/pub?gid=902005521&single=true&output=csv';
 
-    Papa.parse(csvUrl, {
-      download: true,
-      header: true,
-      complete: function(results) {
-        rawData = results.data;
-        filterData();
-      }
+  Papa.parse(csvUrl, {
+    download: true,
+    header: true,
+    complete: function(results) {
+      rawData = results.data;
+      filterData();
+    }
+  });
+
+  function filterData() {
+    const filterType = document.getElementById('filterType').value;
+    const keyword = document.getElementById('keyword').value.trim().toLowerCase();
+    const cabangFilter = document.getElementById('cabangFilter').value;
+    const limit = parseInt(document.getElementById('dataLimit').value);
+
+    let filtered = rawData.filter(row => {
+      const matchKeyword = !keyword || (row[filterType] && row[filterType].toLowerCase().includes(keyword));
+      const matchCabang = cabangFilter === 'SEMUA' || row.CABANG === cabangFilter;
+      return matchKeyword && matchCabang;
     });
 
-    function renderTable(data) {
-      const tbody = document.getElementById('dataTable');
-      tbody.innerHTML = '';
-      data.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${row.NIP}</td><td>${row.NAMA}</td><td>${row.UNIT}</td><td>${row.JABATAN}</td><td>${row.SPK}</td><td>${row['LOKASI ABSEN']}</td><td>${row.KETERANGAN}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
+    renderTable(filtered.slice(0, limit));
+    renderSummary(filtered);
+  }
 
-    function renderSummary(data) {
-      let kalselBelum = 0, kalselSudah = 0, totalKalsel = 0;
-      let kaltengBelum = 0, kaltengSudah = 0, totalKalteng = 0;
+  function renderTable(data) {
+    const tbody = document.getElementById('dataTable');
+    tbody.innerHTML = '';
+    data.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${row.NIP}</td><td>${row.NAMA}</td><td>${row.UNIT}</td><td>${row.JABATAN}</td><td>${row.SPK}</td><td>${row['LOKASI ABSEN']}</td><td>${row.KETERANGAN}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
 
-      data.forEach(row => {
-        if (row.UNIT === 'KALSEL') {
-          totalKalsel++;
-          if (row.KETERANGAN === 'BELUM ABSEN') kalselBelum++;
-          if (row.KETERANGAN === 'SUDAH ABSEN') kalselSudah++;
-        }
-        if (row.UNIT === 'KALTENG') {
-          totalKalteng++;
-          if (row.KETERANGAN === 'BELUM ABSEN') kaltengBelum++;
-          if (row.KETERANGAN === 'SUDAH ABSEN') kaltengSudah++;
-        }
-      });
+  function renderSummary(data) {
+    const kalselData = data.filter(row => row.CABANG === 'CABANG KALSEL');
+    const kaltengData = data.filter(row => row.CABANG === 'CABANG KALTENG');
 
-      const kalselBelumPct = totalKalsel ? ((kalselBelum / totalKalsel) * 100).toFixed(1) : 0;
-      const kalselSudahPct = totalKalsel ? ((kalselSudah / totalKalsel) * 100).toFixed(1) : 0;
-      const kaltengBelumPct = totalKalteng ? ((kaltengBelum / totalKalteng) * 100).toFixed(1) : 0;
-      const kaltengSudahPct = totalKalteng ? ((kaltengSudah / totalKalteng) * 100).toFixed(1) : 0;
+    updateCabangSummary(kalselData, 'kalsel');
+    updateCabangSummary(kaltengData, 'kalteng');
+  }
 
-      document.getElementById('kalselBelum').innerText = `${kalselBelum} | ${kalselBelumPct}%`;
-      document.getElementById('kalselSudah').innerText = `${kalselSudah} | ${kalselSudahPct}%`;
-      document.getElementById('kaltengBelum').innerText = `${kaltengBelum} | ${kaltengBelumPct}%`;
-      document.getElementById('kaltengSudah').innerText = `${kaltengSudah} | ${kaltengSudahPct}%`;
-    }
+  function updateCabangSummary(cabangData, prefix) {
+    const total = cabangData.length;
+    const belum = cabangData.filter(row => row.KETERANGAN === 'BELUM ABSEN').length;
+    const sudah = cabangData.filter(row => row.KETERANGAN === 'SUDAH ABSEN').length;
+    const belumPercent = total ? Math.round((belum / total) * 100) : 0;
+    const sudahPercent = total ? Math.round((sudah / total) * 100) : 0;
 
-    function filterData() {
-      const type = document.getElementById('filterType').value;
-      const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-      const limit = parseInt(document.getElementById('dataLimit').value);
+    document.getElementById(`${prefix}Belum`).innerText = belum;
+    document.getElementById(`${prefix}BelumPercent`).innerText = `${belumPercent}%`;
+    document.getElementById(`${prefix}Sudah`).innerText = sudah;
+    document.getElementById(`${prefix}SudahPercent`).innerText = `${sudahPercent}%`;
+  }
 
-      let filteredData = rawData;
+  function downloadCSV() {
+    const link = document.createElement('a');
+    link.href = csvUrl;
+    link.download = 'MonitoringKSO.csv';
+    link.click();
+  }
+</script>
 
-      if (keyword !== '') {
-        filteredData = rawData.filter(row => row[type] && row[type].toLowerCase().includes(keyword));
-      }
-
-      renderTable(filteredData.slice(0, limit));
-      renderSummary(filteredData);
-    }
-
-    function downloadCSV() {
-      const link = document.createElement('a');
-      link.href = csvUrl;
-      link.download = 'MonitoringKSO.csv';
-      link.click();
-    }
-  </script>
 </body>
 </html>
