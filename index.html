@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Monitoring KSO</title>
+  <style>
+    body { font-family: 'Poppins', sans-serif; background: #f5f7fa; margin: 0; padding: 20px; }
+    .header { text-align: center; font-size: 2em; margin-bottom: 20px; color: #333; }
+    .controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    select, button, input { padding: 10px 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 1em; }
+    .summary { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+    .card { background: #fff; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
+    th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+    th { background: #f0f0f0; }
+    @media (max-width: 600px) { .summary { flex-direction: column; align-items: center; } }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body>
+  <div class="header">Dashboard Monitoring KSO</div>
+
+  <div class="controls">
+    <select id="filterType">
+      <option value="NAMA">NAMA</option>
+      <option value="UNIT">UNIT</option>
+      <option value="JABATAN">JABATAN</option>
+      <option value="SPK">SPK</option>
+    </select>
+    <input type="text" id="filterValue" placeholder="Masukkan kata kunci...">
+    <select id="dataLimit">
+      <option value="10">10</option>
+      <option value="50">50</option>
+      <option value="100">100</option>
+      <option value="500">500</option>
+    </select>
+    <button onclick="filterData()">Tampilkan</button>
+    <button onclick="downloadCSV()">Download Full Data</button>
+  </div>
+
+  <div class="summary">
+    <div class="card">
+      <div>Cabang KALSEL</div>
+      <div>Belum Absen: <span id="kalselBelum">0</span></div>
+      <div>Sudah Absen: <span id="kalselSudah">0</span></div>
+    </div>
+    <div class="card">
+      <div>Cabang KALTENG</div>
+      <div>Belum Absen: <span id="kaltengBelum">0</span></div>
+      <div>Sudah Absen: <span id="kaltengSudah">0</span></div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>NIP</th>
+        <th>NAMA</th>
+        <th>UNIT</th>
+        <th>JABATAN</th>
+        <th>SPK</th>
+        <th>LOKASI ABSEN</th>
+        <th>KETERANGAN</th>
+      </tr>
+    </thead>
+    <tbody id="dataTable"></tbody>
+  </table>
+
+  <script>
+    let rawData = [];
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ99AnzKxfM4RiLan520o2whUadT-vxlbgBCXbSPy9AeW110OHI3SezC1AVxHXwnG681jWB6LVv9p2c/pub?gid=902005521&single=true&output=csv';
+
+    Papa.parse(csvUrl, {
+      download: true,
+      header: true,
+      complete: function(results) {
+        rawData = results.data;
+        renderSummary();
+        renderTable(rawData.slice(0, 10));
+      }
+    });
+
+    function renderTable(data) {
+      const tbody = document.getElementById('dataTable');
+      tbody.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.NIP}</td><td>${row.NAMA}</td><td>${row.UNIT}</td><td>${row.JABATAN}</td><td>${row.SPK}</td><td>${row['LOKASI ABSEN']}</td><td>${row.KETERANGAN}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderSummary() {
+      let kalselBelum = 0, kalselSudah = 0, kaltengBelum = 0, kaltengSudah = 0;
+      rawData.forEach(row => {
+        if (row.UNIT === 'KALSEL') {
+          if (row.KETERANGAN === 'BELUM ABSEN') kalselBelum++;
+          if (row.KETERANGAN === 'SUDAH ABSEN') kalselSudah++;
+        }
+        if (row.UNIT === 'KALTENG') {
+          if (row.KETERANGAN === 'BELUM ABSEN') kaltengBelum++;
+          if (row.KETERANGAN === 'SUDAH ABSEN') kaltengSudah++;
+        }
+      });
+      document.getElementById('kalselBelum').innerText = kalselBelum;
+      document.getElementById('kalselSudah').innerText = kalselSudah;
+      document.getElementById('kaltengBelum').innerText = kaltengBelum;
+      document.getElementById('kaltengSudah').innerText = kaltengSudah;
+    }
+
+    function filterData() {
+      const type = document.getElementById('filterType').value;
+      const keyword = document.getElementById('filterValue').value.toLowerCase();
+      const limit = parseInt(document.getElementById('dataLimit').value);
+
+      const filtered = rawData.filter(row => {
+        return row[type] && row[type].toLowerCase().includes(keyword);
+      });
+
+      renderTable(filtered.slice(0, limit));
+    }
+
+    function downloadCSV() {
+      const link = document.createElement('a');
+      link.href = csvUrl;
+      link.download = 'MonitoringKSO.csv';
+      link.click();
+    }
+  </script>
+</body>
+</html>
