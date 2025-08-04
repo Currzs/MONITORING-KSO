@@ -10,103 +10,134 @@
     .controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
     select, button, input { padding: 10px 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 1em; }
     .summary { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
-    .card { background: #fff; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; min-width: 220px; }
+    .card { background: #fff; padding: 15px 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; min-width: 200px; }
     table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
     th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
     th { background: #f0f0f0; }
-    .loader { display: none; text-align: center; margin: 20px; font-size: 1.2em; color: #666; }
+    #loadingOverlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex; justify-content: center; align-items: center;
+      z-index: 999; display: none;
+    }
+    .spinner {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px; height: 60px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
-  <div class="header">Dashboard Monitoring KSO</div>
 
-  <div class="controls">
-    <select id="filterType">
-      <option value="NAMA">NAMA</option>
-      <option value="UNIT">UNIT</option>
-      <option value="JABATAN">JABATAN</option>
-      <option value="SPK">SPK</option>
-    </select>
-    <input type="text" id="keyword" placeholder="Masukkan kata kunci...">
-    <select id="cabangFilter">
-      <option value="SEMUA">SEMUA</option>
-      <option value="CABANG KALSEL">CABANG KALSEL</option>
-      <option value="CABANG KALTENG">CABANG KALTENG</option>
-    </select>
-    <select id="dataLimit">
-      <option value="10">10</option>
-      <option value="50">50</option>
-      <option value="100">100</option>
-      <option value="500">500</option>
-    </select>
-    <button onclick="filterData()">Tampilkan</button>
-    <button onclick="downloadCSV()">Download Full Data</button>
+<div class="header">Dashboard Monitoring KSO</div>
+
+<div class="controls">
+  <select id="filterType">
+    <option value="NAMA">NAMA</option>
+    <option value="UNIT">UNIT</option>
+    <option value="JABATAN">JABATAN</option>
+    <option value="SPK">SPK</option>
+  </select>
+  <input type="text" id="keyword" placeholder="Masukkan kata kunci...">
+  <select id="cabangFilter">
+    <option value="SEMUA">SEMUA</option>
+    <option value="CABANG KALSEL">CABANG KALSEL</option>
+    <option value="CABANG KALTENG">CABANG KALTENG</option>
+  </select>
+  <select id="dataLimit">
+    <option value="10">10</option>
+    <option value="50">50</option>
+    <option value="100">100</option>
+    <option value="500">500</option>
+  </select>
+  <button onclick="filterData()">Tampilkan</button>
+  <button onclick="downloadCSV()">Download Full Data</button>
+</div>
+
+<div class="summary">
+  <div class="card">
+    <div>Cabang KALSEL</div>
+    <div>BELUM ABSENSI: <span id="kalselBelum">0</span> | <span id="kalselBelumPercent">0%</span></div>
+    <div>SUDAH ABSENSI: <span id="kalselSudah">0</span> | <span id="kalselSudahPercent">0%</span></div>
+    <div>TOTAL KARYAWAN: <span id="kalselTotal">0</span></div>
   </div>
-
-  <div class="summary">
-    <div class="card">
-      <div>Cabang KALSEL</div>
-      <div>BELUM ABSENSI: <span id="kalselBelum">0</span> | <span id="kalselBelumPercent">0%</span></div>
-      <div>SUDAH ABSENSI: <span id="kalselSudah">0</span> | <span id="kalselSudahPercent">0%</span></div>
-      <div>TOTAL KARYAWAN: <span id="kalselTotal">0</span></div>
-    </div>
-    <div class="card">
-      <div>Cabang KALTENG</div>
-      <div>BELUM ABSENSI: <span id="kaltengBelum">0</span> | <span id="kaltengBelumPercent">0%</span></div>
-      <div>SUDAH ABSENSI: <span id="kaltengSudah">0</span> | <span id="kaltengSudahPercent">0%</span></div>
-      <div>TOTAL KARYAWAN: <span id="kaltengTotal">0</span></div>
-    </div>
+  <div class="card">
+    <div>Cabang KALTENG</div>
+    <div>BELUM ABSENSI: <span id="kaltengBelum">0</span> | <span id="kaltengBelumPercent">0%</span></div>
+    <div>SUDAH ABSENSI: <span id="kaltengSudah">0</span> | <span id="kaltengSudahPercent">0%</span></div>
+    <div>TOTAL KARYAWAN: <span id="kaltengTotal">0</span></div>
   </div>
+</div>
 
-  <div class="loader" id="loader">Loading Data...</div>
+<table>
+  <thead>
+    <tr>
+      <th>NIP</th>
+      <th>NAMA</th>
+      <th>UNIT</th>
+      <th>JABATAN</th>
+      <th>SPK</th>
+      <th>LOKASI ABSEN</th>
+      <th>KETERANGAN</th>
+    </tr>
+  </thead>
+  <tbody id="dataTable"></tbody>
+</table>
 
-  <table>
-    <thead>
-      <tr>
-        <th>NIP</th>
-        <th>NAMA</th>
-        <th>UNIT</th>
-        <th>JABATAN</th>
-        <th>SPK</th>
-        <th>LOKASI ABSEN</th>
-        <th>KETERANGAN</th>
-      </tr>
-    </thead>
-    <tbody id="dataTable"></tbody>
-  </table>
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+</div>
 
 <script>
   let rawData = [];
   const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ99AnzKxfM4RiLan520o2whUadT-vxlbgBCXbSPy9AeW110OHI3SezC1AVxHXwnG681jWB6LVv9p2c/pub?gid=902005521&single=true&output=csv';
 
-  document.getElementById('loader').style.display = 'block';
+  function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+  }
+  function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }
+
+  showLoading();
   Papa.parse(csvUrl, {
     download: true,
     header: true,
     complete: function(results) {
       rawData = results.data;
-      document.getElementById('loader').style.display = 'none';
+      hideLoading();
       filterData();
     }
   });
 
   function filterData() {
-    const filterType = document.getElementById('filterType').value;
-    const keyword = document.getElementById('keyword').value.trim().toLowerCase();
-    const cabangFilter = document.getElementById('cabangFilter').value;
-    const limit = parseInt(document.getElementById('dataLimit').value);
+    showLoading();
+    setTimeout(() => {
+      const filterType = document.getElementById('filterType').value;
+      const keyword = document.getElementById('keyword').value.trim().toLowerCase();
+      const cabangFilter = document.getElementById('cabangFilter').value;
+      const limit = parseInt(document.getElementById('dataLimit').value);
 
-    let filtered = rawData.filter(row => {
-      const fieldValue = (row[filterType] || '').toLowerCase();
-      const cabangValue = (row['CABANG'] || row[' CABANG'] || '').trim();
-      const matchKeyword = !keyword || fieldValue.includes(keyword);
-      const matchCabang = cabangFilter === 'SEMUA' || cabangValue === cabangFilter;
-      return matchKeyword && matchCabang;
-    });
+      let filtered = rawData.filter(row => {
+        const fieldValue = (row[filterType] || '').toLowerCase();
+        const cabangValue = (row['CABANG'] || row[' CABANG'] || '').trim();
+        const matchKeyword = !keyword || fieldValue.includes(keyword);
+        const matchCabang = cabangFilter === 'SEMUA' || cabangValue === cabangFilter;
+        return matchKeyword && matchCabang;
+      });
 
-    renderTable(filtered.slice(0, limit));
-    renderSummary(filtered);
+      renderTable(filtered.slice(0, limit));
+      renderSummary(filtered);
+      hideLoading();
+    }, 300);
   }
 
   function renderTable(data) {
@@ -136,8 +167,8 @@
 
   function updateCabangSummary(cabangData, prefix) {
     const total = cabangData.length;
-    const belum = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim().toUpperCase() === 'BELUM ABSENSI').length;
-    const sudah = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim().toUpperCase() === 'SUDAH ABSENSI').length;
+    const belum = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim() === 'BELUM ABSENSI').length;
+    const sudah = cabangData.filter(row => (row['KETERANGAN'] || row[' KETERANGAN'] || '').trim() === 'SUDAH ABSENSI').length;
     const belumPercent = total ? Math.round((belum / total) * 100) : 0;
     const sudahPercent = total ? Math.round((sudah / total) * 100) : 0;
 
