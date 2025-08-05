@@ -115,7 +115,11 @@
   <div class="header">Dashboard Monitoring KSO</div>
 
   <div class="controls">
-    <select id="projectList" onchange="handleProjectChange()"></select>
+    <select id="filterType" onchange="handleFilterTypeChange()">
+      <option value="PROJECT">PROJECT</option>
+      <option value="UNIT">UNIT</option>
+    </select>
+    <select id="projectList" onchange="filterData()"></select>
     <select id="unitList" onchange="filterData()"></select>
     <select id="dataLimit" onchange="filterData()">
       <option value="10">10</option>
@@ -139,6 +143,12 @@
       <div>BELUM ABSENSI: <span id="kaltengBelum">0</span> | <span id="kaltengBelumPercent">0%</span></div>
       <div>SUDAH ABSENSI: <span id="kaltengSudah">0</span> | <span id="kaltengSudahPercent">0%</span></div>
       <div>TOTAL KARYAWAN: <span id="kaltengTotal">0</span></div>
+    </div>
+    <div class="card">
+      <div>Cabang KALSEL-TENG</div>
+      <div>BELUM ABSENSI: <span id="totalBelum">0</span> | <span id="totalBelumPercent">0%</span></div>
+      <div>SUDAH ABSENSI: <span id="totalSudah">0</span> | <span id="totalSudahPercent">0%</span></div>
+      <div>TOTAL KARYAWAN: <span id="totalKaryawan">0</span></div>
     </div>
   </div>
 
@@ -168,7 +178,7 @@
       header: true,
       complete: function(results) {
         rawData = results.data;
-        populateProjectDropdown();
+        populateDropdowns();
         filterData();
       }
     });
@@ -177,23 +187,22 @@
       document.getElementById('loading').style.display = state ? 'flex' : 'none';
     }
 
-    function populateProjectDropdown() {
+    function populateDropdowns() {
       const projects = [...new Set(rawData.map(row => row.PROJECT).filter(Boolean))].sort();
       const projectList = document.getElementById('projectList');
-      projectList.innerHTML = '<option value="ALL">ALL PROJECT</option>' + projects.map(p => `<option value="${p}">${p}</option>`).join('');
-      populateUnitDropdown('ALL');
+      projectList.innerHTML = projects.map(p => `<option value="${p}">${p}</option>`).join('');
+
+      updateUnitDropdown();
     }
 
-    function populateUnitDropdown(project) {
-      let units = rawData.filter(row => project === 'ALL' || row.PROJECT === project).map(row => row.UNIT).filter(Boolean);
-      units = [...new Set(units)].sort();
-      const unitList = document.getElementById('unitList');
-      unitList.innerHTML = '<option value="ALL">ALL UNIT</option>' + units.map(u => `<option value="${u}">${u}</option>`).join('');
-    }
-
-    function handleProjectChange() {
+    function updateUnitDropdown() {
       const selectedProject = document.getElementById('projectList').value;
-      populateUnitDropdown(selectedProject);
+      const units = [...new Set(rawData.filter(row => row.PROJECT === selectedProject).map(row => row.UNIT).filter(Boolean))].sort();
+      const unitList = document.getElementById('unitList');
+      unitList.innerHTML = units.map(u => `<option value="${u}">${u}</option>`).join('');
+    }
+
+    function handleFilterTypeChange() {
       filterData();
     }
 
@@ -204,15 +213,9 @@
         const selectedUnit = document.getElementById('unitList').value;
         const limit = parseInt(document.getElementById('dataLimit').value);
 
-        let filtered = rawData.filter(row => {
-          const matchProject = selectedProject === 'ALL' || row.PROJECT === selectedProject;
-          const matchUnit = selectedUnit === 'ALL' || row.UNIT === selectedUnit;
-          return matchProject && matchUnit;
-        });
+        let filtered = rawData.filter(row => row.PROJECT === selectedProject && row.UNIT === selectedUnit);
 
-        filtered.sort((a, b) => {
-          return a.JABATAN.localeCompare(b.JABATAN) || a.NAMA.localeCompare(b.NAMA);
-        });
+        filtered.sort((a, b) => a.JABATAN.localeCompare(b.JABATAN) || a.NAMA.localeCompare(b.NAMA));
 
         renderTable(filtered.slice(0, limit));
         renderSummary(filtered);
@@ -233,8 +236,21 @@
     function renderSummary(data) {
       const kalselData = data.filter(row => (row['CABANG'] || '').trim() === 'CABANG KALSEL');
       const kaltengData = data.filter(row => (row['CABANG'] || '').trim() === 'CABANG KALTENG');
+
       updateCabangSummary(kalselData, 'kalsel');
       updateCabangSummary(kaltengData, 'kalteng');
+
+      const total = data.length;
+      const belum = data.filter(row => (row['KETERANGAN'] || '').trim() === 'BELUM ABSENSI').length;
+      const sudah = data.filter(row => (row['KETERANGAN'] || '').trim() === 'SUDAH ABSENSI').length;
+      const belumPercent = total ? Math.round((belum / total) * 100) : 0;
+      const sudahPercent = total ? Math.round((sudah / total) * 100) : 0;
+
+      document.getElementById('totalBelum').innerText = belum;
+      document.getElementById('totalBelumPercent').innerText = `${belumPercent}%`;
+      document.getElementById('totalSudah').innerText = sudah;
+      document.getElementById('totalSudahPercent').innerText = `${sudahPercent}%`;
+      document.getElementById('totalKaryawan').innerText = total;
     }
 
     function updateCabangSummary(cabangData, prefix) {
