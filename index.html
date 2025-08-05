@@ -119,8 +119,8 @@
       <option value="PROJECT">PROJECT</option>
       <option value="UNIT">UNIT</option>
     </select>
-    <select id="projectList" style="display:none" onchange="filterData()"></select>
-    <select id="unitList" style="display:none" onchange="filterData()"></select>
+    <select id="projectList" onchange="filterData()"></select>
+    <select id="unitList" onchange="filterData()"></select>
     <select id="dataLimit" onchange="filterData()">
       <option value="10">10</option>
       <option value="50">50</option>
@@ -173,7 +173,7 @@
       complete: function(results) {
         rawData = results.data;
         populateDropdowns();
-        filterData();
+        handleFilterTypeChange();
       }
     });
 
