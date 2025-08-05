@@ -140,6 +140,12 @@
       <div>SUDAH ABSENSI: <span id="kaltengSudah">0</span> | <span id="kaltengSudahPercent">0%</span></div>
       <div>TOTAL KARYAWAN: <span id="kaltengTotal">0</span></div>
     </div>
+    <div class="card">
+      <div>Cabang KALSEL-TENG</div>
+      <div>BELUM ABSENSI: <span id="totalBelum">0</span> | <span id="totalBelumPercent">0%</span></div>
+      <div>SUDAH ABSENSI: <span id="totalSudah">0</span> | <span id="totalSudahPercent">0%</span></div>
+      <div>TOTAL KARYAWAN: <span id="totalKaryawan">0</span></div>
+    </div>
   </div>
 
   <table>
@@ -161,6 +167,7 @@
 
   <script>
     let rawData = [];
+    let globalData = [];
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ99AnzKxfM4RiLan520o2whUadT-vxlbgBCXbSPy9AeW110OHI3SezC1AVxHXwnG681jWB6LVv9p2c/pub?gid=902005521&single=true&output=csv';
 
     Papa.parse(csvUrl, {
@@ -168,8 +175,10 @@
       header: true,
       complete: function(results) {
         rawData = results.data;
+        globalData = rawData;
         populateProjectDropdown();
         filterData();
+        renderGlobalSummary();
       }
     });
 
@@ -210,12 +219,10 @@
           return matchProject && matchUnit;
         });
 
-        filtered.sort((a, b) => {
-          return a.JABATAN.localeCompare(b.JABATAN) || a.NAMA.localeCompare(b.NAMA);
-        });
+        filtered.sort((a, b) => a.JABATAN.localeCompare(b.JABATAN) || a.NAMA.localeCompare(b.NAMA));
 
         renderTable(filtered.slice(0, limit));
-        renderSummary(filtered);
+        renderDynamicSummary(filtered);
         showLoading(false);
       }, 300);
     }
@@ -230,11 +237,29 @@
       });
     }
 
-    function renderSummary(data) {
+    function renderDynamicSummary(data) {
       const kalselData = data.filter(row => (row['CABANG'] || '').trim() === 'CABANG KALSEL');
       const kaltengData = data.filter(row => (row['CABANG'] || '').trim() === 'CABANG KALTENG');
       updateCabangSummary(kalselData, 'kalsel');
       updateCabangSummary(kaltengData, 'kalteng');
+    }
+
+    function renderGlobalSummary() {
+      const kalselData = globalData.filter(row => (row['CABANG'] || '').trim() === 'CABANG KALSEL');
+      const kaltengData = globalData.filter(row => (row['CABANG'] || '').trim() === 'CABANG KALTENG');
+      const totalData = [...kalselData, ...kaltengData];
+
+      const total = totalData.length;
+      const belum = totalData.filter(row => (row['KETERANGAN'] || '').trim() === 'BELUM ABSENSI').length;
+      const sudah = totalData.filter(row => (row['KETERANGAN'] || '').trim() === 'SUDAH ABSENSI').length;
+      const belumPercent = total ? Math.round((belum / total) * 100) : 0;
+      const sudahPercent = total ? Math.round((sudah / total) * 100) : 0;
+
+      document.getElementById('totalBelum').innerText = belum;
+      document.getElementById('totalBelumPercent').innerText = `${belumPercent}%`;
+      document.getElementById('totalSudah').innerText = sudah;
+      document.getElementById('totalSudahPercent').innerText = `${sudahPercent}%`;
+      document.getElementById('totalKaryawan').innerText = total;
     }
 
     function updateCabangSummary(cabangData, prefix) {
@@ -264,4 +289,3 @@
   </script>
 </body>
 </html>
-
