@@ -115,7 +115,7 @@
   <div class="header">Dashboard Monitoring KSO</div>
 
   <div class="controls">
-    <select id="projectList" onchange="filterData()"></select>
+    <select id="projectList" onchange="handleProjectChange()"></select>
     <select id="unitList" onchange="filterData()"></select>
     <select id="dataLimit" onchange="filterData()">
       <option value="10">10</option>
@@ -168,7 +168,7 @@
       header: true,
       complete: function(results) {
         rawData = results.data;
-        populateDropdowns();
+        populateProjectDropdown();
         filterData();
       }
     });
@@ -177,37 +177,41 @@
       document.getElementById('loading').style.display = state ? 'flex' : 'none';
     }
 
-    function populateDropdowns() {
+    function populateProjectDropdown() {
       const projects = [...new Set(rawData.map(row => row.PROJECT).filter(Boolean))].sort();
-      const units = [...new Set(rawData.map(row => row.UNIT).filter(Boolean))].sort();
-
       const projectList = document.getElementById('projectList');
-      const unitList = document.getElementById('unitList');
       projectList.innerHTML = '<option value="ALL">ALL PROJECT</option>' + projects.map(p => `<option value="${p}">${p}</option>`).join('');
+      populateUnitDropdown('ALL');
+    }
+
+    function populateUnitDropdown(project) {
+      let units = rawData.filter(row => project === 'ALL' || row.PROJECT === project).map(row => row.UNIT).filter(Boolean);
+      units = [...new Set(units)].sort();
+      const unitList = document.getElementById('unitList');
       unitList.innerHTML = '<option value="ALL">ALL UNIT</option>' + units.map(u => `<option value="${u}">${u}</option>`).join('');
+    }
+
+    function handleProjectChange() {
+      const selectedProject = document.getElementById('projectList').value;
+      populateUnitDropdown(selectedProject);
+      filterData();
     }
 
     function filterData() {
       showLoading(true);
       setTimeout(() => {
-        const projectValue = document.getElementById('projectList').value;
-        const unitValue = document.getElementById('unitList').value;
+        const selectedProject = document.getElementById('projectList').value;
+        const selectedUnit = document.getElementById('unitList').value;
         const limit = parseInt(document.getElementById('dataLimit').value);
 
         let filtered = rawData.filter(row => {
-          const projectMatch = projectValue === 'ALL' || (row.PROJECT || '').trim() === projectValue;
-          const unitMatch = unitValue === 'ALL' || (row.UNIT || '').trim() === unitValue;
-          return projectMatch && unitMatch;
+          const matchProject = selectedProject === 'ALL' || row.PROJECT === selectedProject;
+          const matchUnit = selectedUnit === 'ALL' || row.UNIT === selectedUnit;
+          return matchProject && matchUnit;
         });
 
         filtered.sort((a, b) => {
-          if (a.JABATAN === b.JABATAN) {
-            if (a.UNIT === b.UNIT) {
-              return a.NAMA.localeCompare(b.NAMA);
-            }
-            return a.UNIT.localeCompare(b.UNIT);
-          }
-          return a.JABATAN.localeCompare(b.JABATAN);
+          return a.JABATAN.localeCompare(b.JABATAN) || a.NAMA.localeCompare(b.NAMA);
         });
 
         renderTable(filtered.slice(0, limit));
